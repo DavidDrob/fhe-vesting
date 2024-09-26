@@ -36,8 +36,6 @@ contract StakingLinearVesting {
     }
 
     function pendingRewards(address _user) public view returns (uint256) {
-        require(vestingStart >= block.timestamp);
-
         uint256 stakedAmount = stakedAmount[_user];
         uint256 rewardsReceived = rewardsReceived[_user];
         uint256 rewardPerToken = (totalRewards * (block.timestamp - vestingStart) / vestingDuration) / totalStaked;
@@ -54,6 +52,8 @@ contract StakingLinearVesting {
 
     // TODO: add receiver argument
     function claimRewards() external {
+        require(block.timestamp >= vestingStart);
+
         uint256 rewards = pendingRewards(msg.sender);
 
         rewardsReceived[msg.sender] += rewards;

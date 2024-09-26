@@ -11,8 +11,10 @@ describe("Unit tests", function () {
     // get tokens from faucet if we're on localfhenix and don't have a balance
     await getTokensFromFaucet();
 
-    const { staking, address } = await deployStakingFixture();
+    const { mockStakingToken, mockRewardToken, staking, address } = await deployStakingFixture();
     this.staking = staking;
+    this.mockStaking = mockStakingToken;
+    this.mockReward = mockRewardToken;
 
     // initiate fhenixjs
     this.permission = await createPermitForContract(hre, address);
