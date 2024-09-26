@@ -11,8 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract StakingLinearVesting {
     // tokens
-    IERC20 stakingToken;
-    IERC20 rewardToken;
+    IERC20 public stakingToken;
+    IERC20 public rewardToken;
 
     // accounting
     mapping(address user => uint256 amount) public stakedAmount;
@@ -22,13 +22,13 @@ contract StakingLinearVesting {
     uint256 public totalRewards;
 
     // vesting
-    uint256 vestingStart;
-    uint256 vestingDuration;
-    uint256 delay;
+    uint256 public vestingStart;
+    uint256 public vestingDuration;
+    uint256 public delay;
 
     constructor(address _stakingToken, address _rewardToken, uint256 _vestingStart, uint256 _vestingDuration, uint256 _delay) {
-        stakingToken = IERC20(stakingToken);
-        rewardToken = IERC20(rewardToken);
+        stakingToken = IERC20(_stakingToken);
+        rewardToken = IERC20(_rewardToken);
 
         vestingStart = _vestingStart;
         vestingDuration = _vestingDuration;
