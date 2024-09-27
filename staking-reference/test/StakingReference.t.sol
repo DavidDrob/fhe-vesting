@@ -48,6 +48,32 @@ contract StakingReferenceTest is Test {
         assertEq(staking.userShares(alice), 50 ether);
     }
 
+    function testUnstake() public {
+        vm.prank(alice);
+        staking.stake(50 ether);
+
+        assertEq(staking.userShares(alice), 50 ether);
+
+        skip(14 days + 3 days); // vesting start + 3 days
+
+        uint256 aliceRewardBefore = rewardToken.balanceOf(alice);
+
+        vm.startPrank(alice);
+        staking.claim();
+        staking.unstake(50 ether);
+        vm.stopPrank();
+
+        assertGt(rewardToken.balanceOf(alice), aliceRewardBefore);
+
+        assertEq(staking.userShares(alice), 0);
+
+        skip(4 days);
+
+        vm.prank(alice);
+        vm.expectRevert();
+        staking.claim();
+    }
+
     function testCantStakeAfterStakingPeriod() public {
         skip(8 days);
 

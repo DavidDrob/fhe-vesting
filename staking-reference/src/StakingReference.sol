@@ -32,13 +32,22 @@ contract StakingReference {
         duration = durationSeconds;
     }
 
-    function stake(uint256 amount) external {
+    function stake(uint256 _amount) external {
         require(block.timestamp <= start - stakingPeriod, "Staking period has ended");
-        require(amount > 0, "No tokens sent");
+        require(_amount > 0, "No tokens sent");
 
-        stakingToken.transferFrom(msg.sender, address(this), amount);
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
 
-        _addShares(msg.sender, amount);
+        _addShares(msg.sender, _amount);
+    }
+
+    function unstake(uint256 _amount) external {
+        require(_amount > 0, "No tokens staked");
+        require(userShares[msg.sender] <= _amount, "Amount larger than staked tokens");
+
+        _removeShares(msg.sender, _amount);
+
+        stakingToken.transfer(msg.sender, _amount);
     }
 
     function addRewards(uint256 _amount) external {
@@ -50,9 +59,14 @@ contract StakingReference {
         totalRewards += _amount;
     }
 
-    function _addShares(address user, uint256 amount) internal {
-        userShares[user] += amount;
-        totalShares += amount;
+    function _addShares(address _user, uint256 _amount) internal {
+        userShares[_user] += _amount;
+        totalShares += _amount;
+    }
+
+    function _removeShares(address _user, uint256 _amount) internal {
+        userShares[_user] -= _amount;
+        totalShares -= _amount;
     }
 
     function end() public view returns (uint256) {
