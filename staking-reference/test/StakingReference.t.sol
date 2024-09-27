@@ -22,7 +22,7 @@ contract StakingReferenceTest is Test {
         rewardToken = new MockERC20("RewardToken", "RTK");
 
         uint64 vestingStart = uint64(block.timestamp + 14 days);
-        staking = new StakingReference(address(stakingToken), address(rewardToken), vestingStart, 7 days);
+        staking = new StakingReference(address(stakingToken), address(rewardToken), vestingStart, 7 days, 7 days);
 
         stakingToken.mint(alice, 100 ether);
         stakingToken.mint(bob, 200 ether);

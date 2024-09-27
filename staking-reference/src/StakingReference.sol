@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 /*
-    TODO: allow adding multiple rewards
+    TODO: allow adding multiple reward tokens
 */
 
 import "@openzeppelin/token/ERC20/IERC20.sol";
@@ -25,21 +25,31 @@ contract StakingReference {
 
     uint64 public immutable start;
     uint64 public immutable duration;
+    uint64 public immutable stakingPeriod;
+
     uint256 public totalShares;
     mapping(address user => uint256 shares) public userShares;
-
-    uint64 public constant stakingPeriod = 7 days;
     
-    constructor(address _stakingToken, address _rewardToken, uint64 startTimestamp, uint64 durationSeconds) {
-        if (startTimestamp <= block.timestamp) revert StakingReference_StakingStartMustBeInTheFuture();
+    /// @notice Initialize the staking contract
+    /// @param _stakingToken token a user can deposit to be eligible for rewards
+    /// @param _rewardToken reward token
+    /// @param _startTimestamp vesting start
+    /// @param _duration vesting duration
+    /// @param _stakingPeriod time before vesting starts. The user will not be able to stake after this period
+    constructor(address _stakingToken, address _rewardToken, uint64 _startTimestamp, uint64 _duration, uint64 _stakingPeriod) {
+        if (_startTimestamp <= block.timestamp) revert StakingReference_StakingStartMustBeInTheFuture();
+        if (_duration == 0 || _stakingPeriod == 0) revert StakingReference_AmountZero();
 
         stakingToken = IERC20(_stakingToken);
         rewardToken = IERC20(_rewardToken);
 
-        start = startTimestamp;
-        duration = durationSeconds;
+        start = _startTimestamp;
+        duration = _duration;
+        stakingPeriod = _stakingPeriod;
     }
 
+    /// @notice Staking `stakingToken` and receive shares
+    /// @param _amount amount of `stakingToken`
     function stake(uint256 _amount) external {
         if (block.timestamp > start - stakingPeriod) revert StakingReference_StakingEnded();
         if (_amount == 0) revert StakingReference_AmountZero();
@@ -49,6 +59,8 @@ contract StakingReference {
         _addShares(msg.sender, _amount);
     }
 
+    /// @notice Unstake `_stakingToken` and burn shares
+    /// @param _amount amount of `_stakingToken`
     function unstake(uint256 _amount) external {
         if (_amount == 0) revert StakingReference_AmountZero();
         if (userShares[msg.sender] > _amount) revert StakingReference_AmountGreaterThanAvailable();
@@ -58,6 +70,8 @@ contract StakingReference {
         stakingToken.transfer(msg.sender, _amount);
     }
 
+    /// @notice Anyone can add any amount of `rewardToken` prior to the vesting start
+    /// @param _amount amount of `rewardToken`
     function addRewards(uint256 _amount) external {
         if (block.timestamp >= start) revert StakingReference_VestingStarted();
         if (_amount == 0) revert StakingReference_AmountZero();
@@ -67,6 +81,7 @@ contract StakingReference {
         totalRewards += _amount;
     }
 
+    /// @notice Internal function to account for shares
     function _addShares(address _user, uint256 _amount) internal {
         userShares[_user] += _amount;
         totalShares += _amount;
@@ -81,12 +96,15 @@ contract StakingReference {
         return start + duration;
     }
 
+    /// @notice Returns amount of `rewardToken` a user can claim at current block.timestamp
     function claimable(address user) public view returns (uint256) {
         uint256 rewardsAvailable = vestingSchedule(uint64(block.timestamp));
         uint256 userTotalAllocation = (userShares[user] * rewardsAvailable) / totalShares;
         return userTotalAllocation - rewardsReceived[user];
     }
 
+    /// @notice Claim pending rewards for a user
+    /// @param receiver Arbitrary receiver of the rewards
     function claim(address receiver) public {
         if (receiver == address(0)) revert StakingReference_AddressZero();
 
@@ -98,6 +116,7 @@ contract StakingReference {
         rewardToken.transfer(receiver, amount);
     }
 
+    /// @notice Returns vested reward tokens at a specific timestamp
     function vestingSchedule(uint64 timestamp) public view returns (uint256) {
         if (timestamp < start) {
             return 0;
