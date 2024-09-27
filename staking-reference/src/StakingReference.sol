@@ -7,6 +7,15 @@ pragma solidity ^0.8.27;
 
 import "@openzeppelin/token/ERC20/IERC20.sol";
 
+// Errors
+error StakingReference_StakingStartMustBeInTheFuture();
+error StakingReference_StakingEnded();
+error StakingReference_VestingStarted();
+error StakingReference_AmountZero();
+error StakingReference_AddressZero();
+error StakingReference_AmountGreaterThanAvailable();
+error StakingReference_NoTokensClaimable();
+
 contract StakingReference {
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardToken;
@@ -22,7 +31,7 @@ contract StakingReference {
     uint64 public constant stakingPeriod = 7 days;
     
     constructor(address _stakingToken, address _rewardToken, uint64 startTimestamp, uint64 durationSeconds) {
-        require(startTimestamp > block.timestamp, "Start time must be in the future");
+        if (startTimestamp <= block.timestamp) revert StakingReference_StakingStartMustBeInTheFuture();
 
         stakingToken = IERC20(_stakingToken);
         rewardToken = IERC20(_rewardToken);
@@ -32,8 +41,8 @@ contract StakingReference {
     }
 
     function stake(uint256 _amount) external {
-        require(block.timestamp <= start - stakingPeriod, "Staking period has ended");
-        require(_amount > 0, "No tokens sent");
+        if (block.timestamp > start - stakingPeriod) revert StakingReference_StakingEnded();
+        if (_amount == 0) revert StakingReference_AmountZero();
 
         stakingToken.transferFrom(msg.sender, address(this), _amount);
 
@@ -41,8 +50,8 @@ contract StakingReference {
     }
 
     function unstake(uint256 _amount) external {
-        require(_amount > 0, "No tokens staked");
-        require(userShares[msg.sender] <= _amount, "Amount larger than staked tokens");
+        if (_amount == 0) revert StakingReference_AmountZero();
+        if (userShares[msg.sender] > _amount) revert StakingReference_AmountGreaterThanAvailable();
 
         _removeShares(msg.sender, _amount);
 
@@ -50,8 +59,8 @@ contract StakingReference {
     }
 
     function addRewards(uint256 _amount) external {
-        require(block.timestamp < start, "Vesting started");
-        require(_amount > 0, "No tokens sent");
+        if (block.timestamp >= start) revert StakingReference_VestingStarted();
+        if (_amount == 0) revert StakingReference_AmountZero();
 
         rewardToken.transferFrom(msg.sender, address(this), _amount);
 
@@ -79,10 +88,10 @@ contract StakingReference {
     }
 
     function claim(address receiver) public {
-        require(receiver != address(0), "Invalid Address");
+        if (receiver == address(0)) revert StakingReference_AddressZero();
 
         uint256 amount = claimable(msg.sender);
-        require(amount > 0, "No tokens claimable");
+        if (amount == 0) revert StakingReference_NoTokensClaimable();
 
         rewardsReceived[msg.sender] += amount;
 
