@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 /*
     TODO: allow adding multiple rewards
-    TODO: add receiver address to claimRewards
 */
 
 import "@openzeppelin/token/ERC20/IERC20.sol";
@@ -79,13 +78,15 @@ contract StakingReference {
         return userTotalAllocation - rewardsReceived[user];
     }
 
-    function claim() public {
+    function claim(address receiver) public {
+        require(receiver != address(0), "Invalid Address");
+
         uint256 amount = claimable(msg.sender);
         require(amount > 0, "No tokens claimable");
 
         rewardsReceived[msg.sender] += amount;
 
-        rewardToken.transfer(msg.sender, amount);
+        rewardToken.transfer(receiver, amount);
     }
 
     function vestingSchedule(uint64 timestamp) public view returns (uint256) {

@@ -59,7 +59,7 @@ contract StakingReferenceTest is Test {
         uint256 aliceRewardBefore = rewardToken.balanceOf(alice);
 
         vm.startPrank(alice);
-        staking.claim();
+        staking.claim(alice);
         staking.unstake(50 ether);
         vm.stopPrank();
 
@@ -71,7 +71,7 @@ contract StakingReferenceTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
-        staking.claim();
+        staking.claim(alice);
     }
 
     function testCantStakeAfterStakingPeriod() public {
@@ -95,10 +95,10 @@ contract StakingReferenceTest is Test {
         uint256 bobRewardBefore = rewardToken.balanceOf(bob);
 
         vm.prank(alice);
-        staking.claim();
+        staking.claim(alice);
 
         vm.prank(bob);
-        staking.claim();
+        staking.claim(bob);
 
         uint256 aliceRewardAfter = rewardToken.balanceOf(alice);
         uint256 bobRewardAfter = rewardToken.balanceOf(bob);
@@ -108,10 +108,12 @@ contract StakingReferenceTest is Test {
 
         vm.prank(bob);
         vm.expectRevert();
-        staking.claim();
+        staking.claim(bob);
     }
 
     function testClaimRewardsFully() public {
+        uint256 aliceStakeBefore = stakingToken.balanceOf(alice);
+
         vm.prank(alice);
         staking.stake(50e18);
 
@@ -127,10 +129,10 @@ contract StakingReferenceTest is Test {
         uint256 bobRewardBefore = rewardToken.balanceOf(bob);
 
         vm.prank(alice);
-        staking.claim();
+        staking.claim(alice);
 
         vm.prank(bob);
-        staking.claim();
+        staking.claim(bob);
 
         uint256 aliceRewardAfter = rewardToken.balanceOf(alice);
         uint256 bobRewardAfter = rewardToken.balanceOf(bob);
@@ -142,6 +144,31 @@ contract StakingReferenceTest is Test {
 
         vm.prank(bob);
         vm.expectRevert();
-        staking.claim();
+        staking.claim(bob);
+
+        vm.prank(alice);
+        staking.unstake(50e18);
+
+        assertEq(aliceStakeBefore, stakingToken.balanceOf(alice));
+    }
+
+    function testClaimReceiver() public {
+        vm.prank(alice);
+        staking.stake(50e18);
+
+        // end of vesting
+        skip(22 days);
+
+        uint256 aliceRewardBefore = rewardToken.balanceOf(alice);
+        uint256 bobRewardBefore = rewardToken.balanceOf(bob);
+
+        vm.prank(alice);
+        staking.claim(bob);
+
+        uint256 aliceRewardAfter = rewardToken.balanceOf(alice);
+        uint256 bobRewardAfter = rewardToken.balanceOf(bob);
+
+        assertEq(aliceRewardAfter, 0);
+        assertEq(bobRewardAfter, 1_000e18);
     }
 }
