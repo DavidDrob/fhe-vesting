@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
+import { Test } from "forge-std/src/Test.sol";
+import { console } from "forge-std/src/console.sol";
 
 import "../src/StakingReference.sol";
 import "../src/MockERC20.sol";

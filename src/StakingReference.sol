@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 /*
     TODO: allow adding multiple reward tokens
 */
 
-import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Errors
 error StakingReference_StakingStartMustBeInTheFuture();
@@ -127,3 +127,4 @@ contract StakingReference {
         }
     }
 }
+
