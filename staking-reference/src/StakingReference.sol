@@ -19,7 +19,6 @@ contract StakingReference {
     uint64 public immutable duration;
     uint256 public totalShares;
     mapping(address user => uint256 shares) public userShares;
-    mapping(address => mapping(address => uint256)) public rewardsReleased;
 
     uint64 public constant stakingPeriod = 7 days;
     

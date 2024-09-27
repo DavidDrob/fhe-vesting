@@ -33,14 +33,89 @@ contract StakingReferenceTest is Test {
         rewardToken.approve(address(staking), 1_000 ether);
         staking.addRewards(1_000 ether);
         vm.stopPrank();
+
+        vm.prank(alice);
+        stakingToken.approve(address(staking), type(uint256).max);
+
+        vm.prank(bob);
+        stakingToken.approve(address(staking), type(uint256).max);
     }
 
     function testStake() public {
-        vm.startPrank(alice);
-        stakingToken.approve(address(staking), 50 ether);
+        vm.prank(alice);
         staking.stake(50 ether);
-        vm.stopPrank();
 
         assertEq(staking.userShares(alice), 50 ether);
+    }
+
+    function testCantStakeAfterStakingPeriod() public {
+        skip(8 days);
+
+        vm.prank(alice);
+        vm.expectRevert();
+        staking.stake(50 ether);
+    }
+
+    function testClaimRewardsBeforeEnd() public {
+        vm.prank(alice);
+        staking.stake(50 ether);
+
+        vm.prank(bob);
+        staking.stake(77 ether);
+
+        skip(14 days + 3 days); // vesting start + 3 days
+
+        uint256 aliceRewardBefore = rewardToken.balanceOf(alice);
+        uint256 bobRewardBefore = rewardToken.balanceOf(bob);
+
+        vm.prank(alice);
+        staking.claim();
+
+        vm.prank(bob);
+        staking.claim();
+
+        uint256 aliceRewardAfter = rewardToken.balanceOf(alice);
+        uint256 bobRewardAfter = rewardToken.balanceOf(bob);
+
+        assertGt(aliceRewardAfter, aliceRewardBefore);
+        assertGt(bobRewardAfter, aliceRewardAfter);
+
+        vm.prank(bob);
+        vm.expectRevert();
+        staking.claim();
+    }
+
+    function testClaimRewardsFully() public {
+        vm.prank(alice);
+        staking.stake(50e18);
+
+        vm.prank(bob);
+        staking.stake(77e18);
+
+        // end of vesting
+        skip(22 days);
+
+        assertEq(staking.vestingSchedule(uint64(block.timestamp)), 1_000e18);
+
+        uint256 aliceRewardBefore = rewardToken.balanceOf(alice);
+        uint256 bobRewardBefore = rewardToken.balanceOf(bob);
+
+        vm.prank(alice);
+        staking.claim();
+
+        vm.prank(bob);
+        staking.claim();
+
+        uint256 aliceRewardAfter = rewardToken.balanceOf(alice);
+        uint256 bobRewardAfter = rewardToken.balanceOf(bob);
+
+        // some dust will remain in the contract
+        assertApproxEqRel(aliceRewardAfter + bobRewardAfter, 1_000e18, 0.1e18);
+        assertLt(rewardToken.balanceOf(address(staking)), 10);
+        assertGt(bobRewardAfter, aliceRewardAfter);
+
+        vm.prank(bob);
+        vm.expectRevert();
+        staking.claim();
     }
 }
